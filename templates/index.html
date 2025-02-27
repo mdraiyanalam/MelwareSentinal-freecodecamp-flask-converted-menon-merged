@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intrusion Detection System</title>
+    <script>
+        let lastPacketCount = 0; // Track the last number of packets
+
+        function startCapture() {
+            fetch('/start_capture')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("status").innerText = data.message;
+            });
+        }
+
+        function stopCapture() {
+            fetch('/stop_capture')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("status").innerText = data.message;
+            });
+        }
+
+        function fetchPackets() {
+            fetch('/get_packets')
+            .then(response => response.json())
+            .then(data => {
+                let packetTable = document.getElementById("packet-table-body");
+                packetTable.innerHTML = ""; // Clear previous entries
+
+                let now = new Date();
+                let formattedTime = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                let formattedDate = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+
+                // Keep only last 10 packets
+                let recentPackets = data.slice(-10);
+
+                // Show an alert if a new packet is detected
+                if (recentPackets.length > lastPacketCount) {
+                    let latestPacket = recentPackets[recentPackets.length - 1]; // Get the latest packet
+                    alert("New Packet Detected:\n" + latestPacket.summary);
+                }
+
+                // Update last packet count
+                lastPacketCount = recentPackets.length;
+
+                recentPackets.forEach(packet => {
+                    let row = document.createElement("tr");
+
+                    let timeCell = document.createElement("td");
+                    timeCell.textContent = formattedTime;
+                    row.appendChild(timeCell);
+
+                    let dateCell = document.createElement("td");
+                    dateCell.textContent = formattedDate;
+                    row.appendChild(dateCell);
+
+                    let summaryCell = document.createElement("td");
+                    summaryCell.textContent = packet.summary;
+                    row.appendChild(summaryCell);
+
+                    packetTable.appendChild(row);
+                });
+            });
+        }
+
+        // Fetch packets every 3 seconds
+        setInterval(fetchPackets, 3000);
+    </script>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <h1>Intrusion Detection System</h1>
+    <button onclick="startCapture()">Start Packet Capture</button>
+    <button onclick="stopCapture()">Stop Packet Capture</button>
+    <p id="status">Click a button to start or stop packet capture.</p>
+    
+    <h2>Captured Packets</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Time (hh:mm:ss)</th>
+                <th>Date (dd/Mon/yyyy)</th>
+                <th>Packet Summary</th>
+            </tr>
+        </thead>
+        <tbody id="packet-table-body">
+            <!-- Captured packets will be added here -->
+        </tbody>
+    </table>
+</body>
+</html>
